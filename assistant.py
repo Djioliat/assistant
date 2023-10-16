@@ -1,118 +1,86 @@
 import os
 import openai
-from dotenv import load_dotenv
 import time
 import speech_recognition as sr
 import pyttsx3
-from gtts import gTTS
+import subprocess
 import numpy as np
+from gtts import gTTS
 
-# Charger les variables d'environnement depuis le fichier .env
-load_dotenv()
+mytext = 'Bienvenue'
+language = 'fr'
+# from os.path import join, dirname
+# import matplotlib.pyplot as plt
+# ^ matplotlib is great for visualising data and for testing purposes but usually not needed for production
+# openai.api_key='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'
+openai.api_base = "http://localhost:4891/v1"
+openai.api_key=''
 
-# Configuration de l'API OpenAI
-openai.api_key = 'clés-API-openai'
-model = 'gpt-4'
-
-# Initialisation de la synthèse vocale
-engine = pyttsx3.init()
-voices = engine.getProperty('voices')
-engine.setProperty('voice', voices[0].id)  # Vous pouvez changer l'indice pour choisir une voix différente
-
-# Création de l'objet Recognizer en dehors de la fonction
+model = "mistral-openorca"
+# Set up the speech recognition and text-to-speech engines
 r = sr.Recognizer()
-
-# Définir le nom et les salutations
-name = "Nom"
-greetings = [
-    f"Quoi de neuf maître {name} ?",
-]
-
-# Fonction pour écouter le mot de réveil
+engine = pyttsx3.init("dummy")
+voice = engine.getProperty('voices')[1]
+engine.setProperty('voice', voice.id)
+name = "Alex"
+greetings = [f"Captain {name}! Commen vas tu?"]
 def listen_for_wake_word(source):
-    print("En attente du mot de réveil 'Biloute'...")
+    print("En attente d'activation 'Oracle'...")
+
     while True:
         audio = r.listen(source)
         try:
             text = r.recognize_google(audio, language='fr-FR')
-            if "biloute" in text.lower():
-                print("Mot de réveil détecté.")
+            if "oracle" in text.lower():
+                print("Mot clés détecté.")
                 engine.say(np.random.choice(greetings))
                 engine.runAndWait()
                 listen_and_respond(source)
                 break
         except sr.UnknownValueError:
             pass
-
-# Fonction pour écouter et répondre avec l'API OpenAI
+# Listen for input and respond with OpenAI API
 def listen_and_respond(source):
-    print("En écoute...")
-
+    print("Vas-si parles")
     while True:
         audio = r.listen(source)
         try:
             text = r.recognize_google(audio, language='fr-FR')
-            print(f"Vous avez dit : {text}")
+            print(f"Tu as dis : {text}")
             if not text:
                 continue
-
-            # Envoyer l'entrée à l'API OpenAI
-            response = openai.ChatCompletion.create(model=model, messages=[{"role": "user", "content": f"{text}"}])
-            response_text = response.choices[0].message.content
-
+            # Send input to OpenAI API
+            # response = openai.ChatCompletion.create(model="gpt-3.5-turbo", messages=[{"role": "user", "content": f"{text}"}])
+            response = openai.Completion.create(model=model, prompt=f"{text}", max_tokens=2048, stop=["\n"])
+            response_text = response.choices[0].text
             print(response_text)
 
-            # Générer et sauvegarder le fichier audio
-            myobj = gTTS(text=response_text, lang='fr', slow=False)
-            # Lire la réponse
-            os.system("cvlc response.mp3")
+            # Check if the response text is empty
+            if response_text:
+                print("generating audio")
+                myobj = gTTS(text = response_text, lang = language, slow = False)
+                myobj.save("response.mp3")
+                print("speaking")
 
-  # Parler la réponse
-            engine.say(response_text)
-            engine.runAndWait()
-
-            if not audio:
-                listen_for_wake_word(source)
-
+                subprocess.run(["vlc", "response.mp3"])
+                # Speak the response
+                print("speaking")
+                engine.say(response_text)
+                engine.runAndWait()
+            else:
+                print("No response from OpenAI")
         except sr.UnknownValueError:
-            time.sleep(22)
-            print("Silence détecté, en attente, à l'écoute...")
+            time.sleep(10)
+            print("Silence...")
             listen_for_wake_word(source)
             break
         except sr.RequestError as e:
-            print(f"Impossible de récupérer les résultats ; {e}")
-            engine.say(f"Impossible de récupérer les résultats ; {e}")
+            print(f"Could not request results; {e}")
+            engine.say(f"Could not request results; {e}")
             engine.runAndWait()
             listen_for_wake_word(source)
             break
 
-# Utiliser le microphone par défaut comme source audio
+# Use the default microphone as the audio source
 with sr.Microphone() as source:
     listen_for_wake_word(source)
-
-            # Lire la réponse
-            os.system("cvlc response.mp3")
-
-  # Parler la réponse
-            engine.say(response_text)
-            engine.runAndWait()
-
-            if not audio:
-                listen_for_wake_word(source)
-
-        except sr.UnknownValueError:
-            time.sleep(22)
-            print("Silence détecté, en attente, à l'écoute...")
-            listen_for_wake_word(source)
-            break
-        except sr.RequestError as e:
-            print(f"Impossible de récupérer les résultats ; {e}")
-            engine.say(f"Impossible de récupérer les résultats ; {e}")
-            engine.runAndWait()
-            listen_for_wake_word(source)
-            break
-
-# Utiliser le microphone par défaut comme source audio
-with sr.Microphone() as source:
-    listen_for_wake_word(source)
-
