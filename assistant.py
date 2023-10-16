@@ -11,8 +11,7 @@ mytext = 'Bienvenue'
 language = 'fr'
 # from os.path import join, dirname
 # import matplotlib.pyplot as plt
-# ^ matplotlib is great for visualising data and for testing purposes but usually not needed for production
-# openai.api_key='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'
+# ^ matplotlib is great for visualising data and for testing purposes but usually not needed for production'
 openai.api_base = "http://localhost:4891/v1"
 openai.api_key=''
 
